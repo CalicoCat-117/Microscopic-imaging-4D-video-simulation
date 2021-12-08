@@ -11,9 +11,9 @@ from tqdm import tqdm
 DEBUG = False
 
 class wffm:
-    def __init__(self):
+    def __init__(self, intensity):
         self.name = "wide field"
-        self.intensity = [1000, 3000]
+        self.intensity = intensity
         self.size = [32, 32, 9]
         self.n = 1.5
         self._lambda_em = 610
@@ -47,9 +47,9 @@ class wffm:
 
 
 class lscm:
-    def __init__(self):
+    def __init__(self, intensity):
         self.name = "confocal"
-        self.intensity = [1000, 3000]
+        self.intensity = intensity
         self.size = [32, 32, 32]
         self.n = 1.5
         self._lambda_ex = 561
@@ -148,7 +148,8 @@ if __name__ == '__main__':
     ''' config '''
     img_size = [128, 128, 9]
     obj_num = 200
-    img_method = wffm()
+    intensity = [100, 200]
+    img_method = wffm(intensity)
 
     ''' init point cloud ''' 
     pt1 = Minkowski_Point_Cloud(obj_num=obj_num, prototype_num=3, img_method=img_method, n_jobs=32)
