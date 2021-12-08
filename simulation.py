@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+''' @Author: Zehao Wang (wangze@mail.ustc.edu.cn) '''
 from skimage.io import imread, imsave
 from psf import wide_field_psf, confocal_psf_app
 import numpy as np
@@ -9,7 +11,6 @@ from skimage.transform import rescale
 from tqdm import tqdm
 
 DEBUG = False
-
 class wffm:
     def __init__(self, intensity):
         self.name = "wide field"
@@ -150,7 +151,7 @@ if __name__ == '__main__':
     img_size = [128, 128, 9] # XYZ
     ntimes = 20
     obj_num = 200
-    intensity = [100, 200] # min, max
+    intensity = [100, 200] # min, max (Number of particle radiated photons)
 
     # img_method = wffm(intensity)
     img_method = lscm(intensity)
