@@ -72,15 +72,16 @@ class lscm:
         _z0 = (0.5 + size[2] - 1 + 0.5) / 2
         _lambda_ex = self._lambda_ex / self.n
         _lambda_em = self._lambda_em / self.n
-        _NA_n = self._NA / self.n
+        _NA_n = [self._NA[0] / self.n, self._NA[1] / self.n]
         _r = self.pinhole / self.magnification
         PSF_list = []
         for i in tqdm(range(psf_num)):
-            pinhole_psf = wide_field_psf(size, _lambda_em, _NA_n, x_step, y_step, z_step, _x0, _y0, _z0, n_jobs=n_jobs)
-            psf = confocal_psf_app(size, pinhole_psf, _r, _lambda_ex, _lambda_em, _NA_n, x_step, y_step, z_step, _x0, _y0, _z0, n_jobs=n_jobs)
+            _NA_n_i = np.random.uniform(*_NA_n)
+            pinhole_psf = wide_field_psf(size, _lambda_em, _NA_n_i, x_step, y_step, z_step, _x0, _y0, _z0, n_jobs=n_jobs)
+            psf = confocal_psf_app(size, pinhole_psf, _r, _lambda_ex, _lambda_em, _NA_n_i, x_step, y_step, z_step, _x0, _y0, _z0, n_jobs=n_jobs)
             if DEBUG:
                 print(psf.shape)
-                save_path = "data/sim_3dmov/wffm_psf_scaled"
+                save_path = "data/4d/wffm_psf_scaled"
                 os.makedirs(save_path, exist_ok=True)
                 imsave(os.path.join(save_path, "wffm_psf_scaled_%03d.tif"%i), psf.transpose([2, 1, 0]), check_contrast=False)
             PSF_list.append(psf)
@@ -94,7 +95,7 @@ class Minkowski_Point_Cloud():
         self.prototype_num = prototype_num
         self.img_method = img_method
         # init prototype
-        if img_method.name == "wide field":
+        if img_method.name == "wide field" or img_method.name == "confocal":
             print("init prototype", img_method.name, "psf")
             self.prototype = img_method.build_psfs(self.prototype_num, n_jobs=self.n_jobs)
         else:
@@ -146,15 +147,18 @@ class Minkowski_Point_Cloud():
 if __name__ == '__main__':
     t0 = time.time()
     ''' config '''
-    img_size = [128, 128, 9]
+    img_size = [128, 128, 9] # XYZ
+    ntimes = 20
     obj_num = 200
-    intensity = [100, 200]
-    img_method = wffm(intensity)
+    intensity = [100, 200] # min, max
+
+    # img_method = wffm(intensity)
+    img_method = lscm(intensity)
 
     ''' init point cloud ''' 
     pt1 = Minkowski_Point_Cloud(obj_num=obj_num, prototype_num=3, img_method=img_method, n_jobs=32)
-    c1 = np.asarray([30, 64, 4])
-    pt1.init_gauss_pos(c1, [20, 20, 10])
+    c1 = np.asarray([30, 64, 4]) # mux, muy, muz
+    pt1.init_gauss_pos(c1, [20, 20, 10]) # sigmax, sigmay, sigmaz
     
     pt2 = Minkowski_Point_Cloud(obj_num=obj_num, prototype_num=3, img_method=img_method, n_jobs=32)
     c2 = np.asarray([90, 64, 4])
@@ -166,7 +170,7 @@ if __name__ == '__main__':
 
     ''' Simulating ''' 
     print("Simulating ...")
-    for t in tqdm(range(20)):
+    for t in tqdm(range(ntimes)):
         canvas_cln_t = np.zeros([img_size[0]*scale, img_size[1]*scale, img_size[2]*scale])
         ''' random_walk '''
         pt1.update_diffusion(30 * 10/(t+10), 10 * 3/(t+3), c1, 0.5)
@@ -183,12 +187,11 @@ if __name__ == '__main__':
     canvas_cln = np.concatenate(canvas_cln_list, axis=-1)
     
     ''' save ''' 
-    save_path = "data/sim_3dmov/"
+    save_path = "data/"
     os.makedirs(save_path, exist_ok=True)
-    save_tiff_imagej_compatible(os.path.join(save_path, "mov_nsy.tif"), canvas_nsy.astype(np.uint16), "XYZCT")
-    print("mov_nsy.tif saved")
-    save_tiff_imagej_compatible(os.path.join(save_path, "mov_cln.tif"), canvas_cln.astype(np.uint16), "XYZCT")
-    print("mov_cln.tif saved")
+    canvas_save = np.concatenate([canvas_cln, canvas_nsy], axis=3).astype(np.uint16)
+    save_tiff_imagej_compatible(os.path.join(save_path, img_method.name + "_simulation.tif"), canvas_save, "XYZCT")
+    print("simulation saved")
     print("build_psfs t=%.2fs"%(time.time()-t0))
     
         
