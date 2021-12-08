@@ -17,3 +17,4 @@ python simulation.py
 
 https://imagej.net/software/fiji/downloads
 
+![test](doc/test.gif)
